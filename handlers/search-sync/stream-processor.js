@@ -1,0 +1,93 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.handler = void 0;
+const util_dynamodb_1 = require("@aws-sdk/util-dynamodb");
+const aws_logger_1 = require("@vitkuz/aws-logger");
+const opensearch_1 = require("@opensearch-project/opensearch");
+const aws_opensearch_adapter_1 = require("@vitkuz/aws-opensearch-adapter");
+const credential_provider_node_1 = require("@aws-sdk/credential-provider-node");
+const aws_1 = require("@opensearch-project/opensearch/aws");
+// Hardcoded index name as requested
+const INDEX_NAME = 'vitkuz-search-sync-index';
+const OPENSEARCH_ENDPOINT = process.env.OPENSEARCH_ENDPOINT;
+const REGION = process.env.AWS_REGION || 'us-east-1'; // Default backup
+if (!OPENSEARCH_ENDPOINT) {
+    throw new Error('OPENSEARCH_ENDPOINT env var is missing');
+}
+const client = new opensearch_1.Client({
+    ...(0, aws_1.AwsSigv4Signer)({
+        region: REGION,
+        service: 'es',
+        getCredentials: () => (0, credential_provider_node_1.defaultProvider)()(),
+    }),
+    node: `https://${OPENSEARCH_ENDPOINT}`
+});
+exports.handler = (0, aws_logger_1.withLogger)(async (event, context) => {
+    const logger = (0, aws_logger_1.getLogger)();
+    if (!logger)
+        throw new Error('Logger missing');
+    const adapter = (0, aws_opensearch_adapter_1.createAdapter)({ client, logger });
+    logger.info('Processing DynamoDB Stream for Search Sync', {
+        recordCount: event.Records.length,
+        indexIs: INDEX_NAME
+    });
+    for (const record of event.Records) {
+        // Attempt to extract request ID if stored in the record (e.g. from the API insert)
+        // This is a best-effort correlation
+        let requestId;
+        if (record.dynamodb?.NewImage) {
+            const doc = (0, util_dynamodb_1.unmarshall)(record.dynamodb.NewImage);
+            // If the item has a 'requestId' or similar field, we could use it.
+            // Assuming standard field naming or just relying on Lambda context ID if not found.
+            // If the user meant "extract custom request id key" from the *logger package*, I am using REQUEST_ID_KEY
+            // to key it in the logger. I will check if 'x-request-id' exists in the document.
+            if (doc['x-request-id']) {
+                requestId = doc['x-request-id'];
+            }
+        }
+        const childLogger = logger.child(requestId ? { [aws_logger_1.REQUEST_ID_KEY]: requestId } : {});
+        try {
+            if (record.eventName === 'INSERT' || record.eventName === 'MODIFY') {
+                if (!record.dynamodb?.NewImage)
+                    continue;
+                // Unmarshall DynamoDB JSON to standard JSON
+                const doc = (0, util_dynamodb_1.unmarshall)(record.dynamodb.NewImage);
+                const id = doc.pk; // Assuming 'pk' is the ID
+                if (!id) {
+                    childLogger.warn('Skipping record without pk', { record });
+                    continue;
+                }
+                await adapter.indexDocument({
+                    index: INDEX_NAME,
+                    id: id,
+                    body: doc,
+                    refresh: true // Forcing refresh for immediate consistency in tests, safe for low volume
+                });
+                childLogger.info('Indexed document', { id, eventName: record.eventName });
+            }
+            else if (record.eventName === 'REMOVE') {
+                if (!record.dynamodb?.Keys)
+                    continue;
+                const keys = (0, util_dynamodb_1.unmarshall)(record.dynamodb.Keys);
+                const id = keys.pk;
+                if (!id) {
+                    childLogger.warn('Skipping delete without pk', { record });
+                    continue;
+                }
+                await adapter.deleteDocument({
+                    index: INDEX_NAME,
+                    id: id,
+                    refresh: true
+                });
+                childLogger.info('Deleted document', { id });
+            }
+        }
+        catch (error) {
+            logger.error('Error processing record', error instanceof Error ? error : String(error), { record });
+            // Should we throw to retry? Usually yes for reliability.
+            // For this demo/test stack, logging might be sufficient, but rethrowing ensures DLQ/retry behavior.
+            throw error;
+        }
+    }
+});
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic3RyZWFtLXByb2Nlc3Nvci5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbInN0cmVhbS1wcm9jZXNzb3IudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7O0FBQ0EsMERBQW9EO0FBRXBELG1EQUEyRTtBQUMzRSwrREFBd0Q7QUFDeEQsMkVBQStEO0FBQy9ELGdGQUFvRTtBQUNwRSw0REFBb0U7QUFFcEUsb0NBQW9DO0FBQ3BDLE1BQU0sVUFBVSxHQUFHLDBCQUEwQixDQUFDO0FBQzlDLE1BQU0sbUJBQW1CLEdBQUcsT0FBTyxDQUFDLEdBQUcsQ0FBQyxtQkFBbUIsQ0FBQztBQUM1RCxNQUFNLE1BQU0sR0FBRyxPQUFPLENBQUMsR0FBRyxDQUFDLFVBQVUsSUFBSSxXQUFXLENBQUMsQ0FBQyxpQkFBaUI7QUFFdkUsSUFBSSxDQUFDLG1CQUFtQixFQUFFLENBQUM7SUFDdkIsTUFBTSxJQUFJLEtBQUssQ0FBQyx3Q0FBd0MsQ0FBQyxDQUFDO0FBQzlELENBQUM7QUFFRCxNQUFNLE1BQU0sR0FBRyxJQUFJLG1CQUFNLENBQUM7SUFDdEIsR0FBRyxJQUFBLG9CQUFjLEVBQUM7UUFDZCxNQUFNLEVBQUUsTUFBTTtRQUNkLE9BQU8sRUFBRSxJQUFJO1FBQ2IsY0FBYyxFQUFFLEdBQUcsRUFBRSxDQUFDLElBQUEsMENBQWUsR0FBRSxFQUFFO0tBQzVDLENBQUM7SUFDRixJQUFJLEVBQUUsV0FBVyxtQkFBbUIsRUFBRTtDQUN6QyxDQUFDLENBQUM7QUFFVSxRQUFBLE9BQU8sR0FBRyxJQUFBLHVCQUFVLEVBQUMsS0FBSyxFQUFFLEtBQTBCLEVBQUUsT0FBZ0IsRUFBRSxFQUFFO0lBQ3JGLE1BQU0sTUFBTSxHQUFHLElBQUEsc0JBQVMsR0FBRSxDQUFDO0lBQzNCLElBQUksQ0FBQyxNQUFNO1FBQUUsTUFBTSxJQUFJLEtBQUssQ0FBQyxnQkFBZ0IsQ0FBQyxDQUFDO0lBRS9DLE1BQU0sT0FBTyxHQUFHLElBQUEsc0NBQWEsRUFBQyxFQUFFLE1BQU0sRUFBRSxN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akQsQ0FBQztRQUNMLENBQUM7UUFBQyxPQUFPLEtBQUssRUFBRSxDQUFDO1lBQ2IsTUFBTSxDQUFDLEtBQUssQ0FBQyx5QkFBeUIsRUFBRSxLQUFLLFlBQVksS0FBSyxDQUFDLENBQUMsQ0FBQyxLQUFLLENBQUMsQ0FBQyxDQUFDLE1BQU0sQ0FBQyxLQUFLLENBQUMsRUFBRSxFQUFFLE1BQU0sRUFBRSxDQUFDLENBQUM7WUFDcEcseURBQXlEO1lBQ3pELG9HQUFvRztZQUNwRyxNQUFNLEtBQUssQ0FBQztRQUNoQixDQUFDO0lBQ0wsQ0FBQztBQUNMLENBQUMsQ0FBQyxDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgRHluYW1vREJTdHJlYW1FdmVudCwgQ29udGV4dCB9IGZyb20gJ2F3cy1sYW1iZGEnO1xuaW1wb3J0IHsgdW5tYXJzaGFsbCB9IGZyb20gJ0Bhd3Mtc2RrL3V0aWwtZHluYW1vZGInO1xuaW1wb3J0IHsgQXR0cmlidXRlVmFsdWUgfSBmcm9tICdAYXdzLXNkay9jbGllbnQtZHluYW1vZGInO1xuaW1wb3J0IHsgd2l0aExvZ2dlciwgZ2V0TG9nZ2VyLCBSRVFVRVNUX0lEX0tFWSB9IGZyb20gJ0B2aXRrdXovYXdzLWxvZ2dlcic7XG5pbXBvcnQgeyBDbGllbnQgfSBmcm9tICdAb3BlbnNlYXJjaC1wcm9qZWN0L29wZW5zZWFyY2gnO1xuaW1wb3J0IHsgY3JlYXRlQWRhcHRlciB9IGZyb20gJ0B2aXRrdXovYXdzLW9wZW5zZWFyY2gtYWRhcHRlcic7XG5pbXBvcnQgeyBkZWZhdWx0UHJvdmlkZXIgfSBmcm9tICdAYXdzLXNkay9jcmVkZW50aWFsLXByb3ZpZGVyLW5vZGUnO1xuaW1wb3J0IHsgQXdzU2lndjRTaWduZXIgfSBmcm9tICdAb3BlbnNlYXJjaC1wcm9qZWN0L29wZW5zZWFyY2gvYXdzJztcblxuLy8gSGFyZGNvZGVkIGluZGV4IG5hbWUgYXMgcmVxdWVzdGVkXG5jb25zdCBJTkRFWF9OQU1FID0gJ3ZpdGt1ei1zZWFyY2gtc3luYy1pbmRleCc7XG5jb25zdCBPUEVOU0VBUkNIX0VORFBPSU5UID0gcHJvY2Vzcy5lbnYuT1BFTlNFQVJDSF9FTkRQT0lOVDtcbmNvbnN0IFJFR0lPTiA9IHByb2Nlc3MuZW52LkFXU19SRUdJT04gfHwgJ3VzLWVhc3QtMSc7IC8vIERlZmF1bHQgYmFja3VwXG5cbmlmICghT1BFTlNFQVJDSF9FTkRQT0lOVCkge1xuICAgIHRocm93IG5ldyBFcnJvcignT1BFTlNFQVJDSF9FTkRQT0lOVCBlbnYgdmFyIGlzIG1pc3NpbmcnKTtcbn1cblxuY29uc3QgY2xpZW50ID0gbmV3IENsaWVudCh7XG4gICAgLi4uQXdzU2lndjRTaWduZXIoe1xuICAgICAgICByZWdpb246IFJFR0lPTixcbiAgICAgICAgc2VydmljZTogJ2VzJyxcbiAgICAgICAgZ2V0Q3JlZGVudGlhbHM6ICgpID0+IGRlZmF1bHRQcm92aWRlcigpKCksXG4gICAgfSksXG4gICAgbm9kZTogYGh0dHBzOi8vJHtPUEVOU0VBUkNIX0VORFBPSU5UfWBcbn0pO1xuXG5leHBvcnQgY29uc3QgaGFuZGxlciA9IHdpdGhMb2dnZXIoYXN5bmMgKGV2ZW50OiBEeW5hbW9EQlN0cmVhbUV2ZW50LCBjb250ZXh0OiBDb250ZXh0KSA9PiB7XG4gICAgY29uc3QgbG9nZ2VyID0gZ2V0TG9nZ2VyKCk7XG4gICAgaWYgKCFsb2dnZXIpIHRocm93IG5ldyBFcnJvcignTG9nZ2VyIG1pc3NpbmcnKTtcblxuICAgIGNvbnN0IGFkYXB0ZXIgPSBjcmVhdGVBZGFwdGVyKHsgY2xpZW50LCBsb2dnZXIgfSk7XG5cbiAgICBsb2dnZXIuaW5mbygnUHJvY2Vzc2luZyBEeW5hbW9EQiBTdHJlYW0gZm9yIFNlYXJjaCBTeW5jJywge1xuICAgICAgICByZWNvcmRDb3VudDogZXZlbnQuUmVjb3Jkcy5sZW5ndGgsXG4gICAgICAgIGluZGV4SXM6IElOREVYX05BTUVcbiAgICB9KTtcblxuICAgIGZvciAoY29uc3QgcmVjb3JkIG9mIGV2ZW50LlJlY29yZHMpIHtcbiAgICAgICAgLy8gQXR0ZW1wdCB0byBleHRyYWN0IHJlcXVlc3QgSUQgaWYgc3RvcmVkIGluIHRoZSByZWNvcmQgKGUuZy4gZnJvbSB0aGUgQVBJIGluc2VydClcbiAgICAgICAgLy8gVGhpcyBpcyBhIGJlc3QtZWZmb3J0IGNvcnJlbGF0aW9uXG4gICAgICAgIGxldCByZXF1ZXN0SWQ6IHN0cmluZyB8IHVuZGVmaW5lZDtcbiAgICAgICAgaWYgKHJlY29yZC5keW5hbW9kYj8uTmV3SW1hZ2UpIHtcbiAgICAgICAgICAgIGNvbnN0IGRvYyA9IHVubWFyc2hhbGwocmVjb3JkLmR5bmFtb2RiLk5ld0ltYWdlIGFzIHsgW2tleTogc3RyaW5nXTogQXR0cmlidXRlVmFsdWUgfSk7XG4gICAgICAgICAgICAvLyBJZiB0aGUgaXRlbSBoYXMgYSAncmVxdWVzdElkJyBvciBzaW1pbGFyIGZpZWxkLCB3ZSBjb3VsZCB1c2UgaXQuXG4gICAgICAgICAgICAvLyBBc3N1bWluZyBzdGFuZGFyZCBmaWVsZCBuYW1pbmcgb3IganVzdCByZWx5aW5nIG9uIExhbWJkYSBjb250ZXh0IElEIGlmIG5vdCBmb3VuZC5cbiAgICAgICAgICAgIC8vIElmIHRoZSB1c2VyIG1lYW50IFwiZXh0cmFjdCBjdXN0b20gcmVxdWVzdCBpZCBrZXlcIiBmcm9tIHRoZSAqbG9nZ2VyIHBhY2thZ2UqLCBJIGFtIHVzaW5nIFJFUVVFU1RfSURfS0VZXG4gICAgICAgICAgICAvLyB0byBrZXkgaXQgaW4gdGhlIGxvZ2dlci4gSSB3aWxsIGNoZWNrIGlmICd4LXJlcXVlc3QtaWQnIGV4aXN0cyBpbiB0aGUgZG9jdW1lbnQuXG4gICAgICAgICAgICBpZiAoZG9jWyd4LXJlcXVlc3QtaWQnXSkge1xuICAgICAgICAgICAgICAgIHJlcXVlc3RJZCA9IGRvY1sneC1yZXF1ZXN0LWlkJ107XG4gICAgICAgICAgICB9XG4gICAgICAgIH1cblxuXG4gICAgICAgIGNvbnN0IGNoaWxkTG9nZ2VyID0gbG9nZ2VyLmNoaWxkKHJlcXVlc3RJZCA/IHsgW1JFUVVFU1RfSURfS0VZXTogcmVxdWVzdElkIH0gOiB7fSk7XG5cbiAgICAgICAgdHJ5IHtcbiAgICAgICAgICAgIGlmIChyZWNvcmQuZXZlbnROYW1lID09PSAnSU5TRVJUJyB8fCByZWNvcmQuZXZlbnROYW1lID09PSAnTU9ESUZZJykge1xuICAgICAgICAgICAgICAgIGlmICghcmVjb3JkLmR5bmFtb2RiPy5OZXdJbWFnZSkgY29udGludWU7XG5cbiAgICAgICAgICAgICAgICAvLyBVbm1hcnNoYWxsIER5bmFtb0RCIEpTT04gdG8gc3RhbmRhcmQgSlNPTlxuICAgICAgICAgICAgICAgIGNvbnN0IGRvYyA9IHVubWFyc2hhbGwocmVjb3JkLmR5bmFtb2RiLk5ld0ltYWdlIGFzIHsgW2tleTogc3RyaW5nXTogQXR0cmlidXRlVmFsdWUgfSk7XG4gICAgICAgICAgICAgICAgY29uc3QgaWQgPSBkb2MucGs7IC8vIEFzc3VtaW5nICdwaycgaXMgdGhlIElEXG5cbiAgICAgICAgICAgICAgICBpZiAoIWlkKSB7XG4gICAgICAgICAgICAgICAgICAgIGNoaWxkTG9nZ2VyLndhcm4oJ1NraXBwaW5nIHJlY29yZCB3aXRob3V0IHBrJywgeyByZWNvcmQgfSk7XG4gICAgICAgICAgICAgICAgICAgIGNvbnRpbnVlO1xuICAgICAgICAgICAgICAgIH1cblxuICAgICAgICAgICAgICAgIGF3YWl0IGFkYXB0ZXIuaW5kZXhEb2N1bWVudCh7XG4gICAgICAgICAgICAgICAgICAgIGluZGV4OiBJTkRFWF9OQU1FLFxuICAgICAgICAgICAgICAgICAgICBpZDogaWQsXG4gICAgICAgICAgICAgICAgICAgIGJvZHk6IGRvYyxcbiAgICAgICAgICAgICAgICAgICAgcmVmcmVzaDogdHJ1ZSAvLyBGb3JjaW5nIHJlZnJlc2ggZm9yIGltbWVkaWF0ZSBjb25zaXN0ZW5jeSBpbiB0ZXN0cywgc2FmZSBmb3IgbG93IHZvbHVtZVxuICAgICAgICAgICAgICAgIH0pO1xuXG4gICAgICAgICAgICAgICAgY2hpbGRMb2dnZXIuaW5mbygnSW5kZXhlZCBkb2N1bWVudCcsIHsgaWQsIGV2ZW50TmFtZTogcmVjb3JkLmV2ZW50TmFtZSB9KTtcblxuICAgICAgICAgICAgfSBlbHNlIGlmIChyZWNvcmQuZXZlbnROYW1lID09PSAnUkVNT1ZFJykge1xuICAgICAgICAgICAgICAgIGlmICghcmVjb3JkLmR5bmFtb2RiPy5LZXlzKSBjb250aW51ZTtcblxuICAgICAgICAgICAgICAgIGNvbnN0IGtleXMgPSB1bm1hcnNoYWxsKHJlY29yZC5keW5hbW9kYi5LZXlzIGFzIHsgW2tleTogc3RyaW5nXTogQXR0cmlidXRlVmFsdWUgfSk7XG4gICAgICAgICAgICAgICAgY29uc3QgaWQgPSBrZXlzLnBrO1xuXG4gICAgICAgICAgICAgICAgaWYgKCFpZCkge1xuICAgICAgICAgICAgICAgICAgICBjaGlsZExvZ2dlci53YXJuKCdTa2lwcGluZyBkZWxldGUgd2l0aG91dCBwaycsIHsgcmVjb3JkIH0pO1xuICAgICAgICAgICAgICAgICAgICBjb250aW51ZTtcbiAgICAgICAgICAgICAgICB9XG5cbiAgICAgICAgICAgICAgICBhd2FpdCBhZGFwdGVyLmRlbGV0ZURvY3VtZW50KHtcbiAgICAgICAgICAgICAgICAgICAgaW5kZXg6IElOREVYX05BTUUsXG4gICAgICAgICAgICAgICAgICAgIGlkOiBpZCxcbiAgICAgICAgICAgICAgICAgICAgcmVmcmVzaDogdHJ1ZVxuICAgICAgICAgICAgICAgIH0pO1xuXG4gICAgICAgICAgICAgICAgY2hpbGRMb2dnZXIuaW5mbygnRGVsZXRlZCBkb2N1bWVudCcsIHsgaWQgfSk7XG4gICAgICAgICAgICB9XG4gICAgICAgIH0gY2F0Y2ggKGVycm9yKSB7XG4gICAgICAgICAgICBsb2dnZXIuZXJyb3IoJ0Vycm9yIHByb2Nlc3NpbmcgcmVjb3JkJywgZXJyb3IgaW5zdGFuY2VvZiBFcnJvciA/IGVycm9yIDogU3RyaW5nKGVycm9yKSwgeyByZWNvcmQgfSk7XG4gICAgICAgICAgICAvLyBTaG91bGQgd2UgdGhyb3cgdG8gcmV0cnk/IFVzdWFsbHkgeWVzIGZvciByZWxpYWJpbGl0eS5cbiAgICAgICAgICAgIC8vIEZvciB0aGlzIGRlbW8vdGVzdCBzdGFjaywgbG9nZ2luZyBtaWdodCBiZSBzdWZmaWNpZW50LCBidXQgcmV0aHJvd2luZyBlbnN1cmVzIERMUS9yZXRyeSBiZWhhdmlvci5cbiAgICAgICAgICAgIHRocm93IGVycm9yO1xuICAgICAgICB9XG4gICAgfVxufSk7XG4iXX0=
