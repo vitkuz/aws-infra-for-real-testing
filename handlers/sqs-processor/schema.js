@@ -1,0 +1,21 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SnsEnvelopeSchema = void 0;
+const zod_1 = require("zod");
+// SNS Envelope Schema
+exports.SnsEnvelopeSchema = zod_1.z.object({
+    Type: zod_1.z.literal('Notification').optional(),
+    MessageId: zod_1.z.string().optional(),
+    TopicArn: zod_1.z.string().optional(),
+    Message: zod_1.z.string(), // The inner message we care about
+    Timestamp: zod_1.z.string().optional(),
+    SignatureVersion: zod_1.z.string().optional(),
+    Signature: zod_1.z.string().optional(),
+    SigningCertURL: zod_1.z.string().optional(),
+    UnsubscribeURL: zod_1.z.string().optional(),
+    MessageAttributes: zod_1.z.record(zod_1.z.string(), zod_1.z.object({
+        Type: zod_1.z.string(),
+        Value: zod_1.z.string()
+    })).optional()
+});
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic2NoZW1hLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsic2NoZW1hLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7OztBQUFBLDZCQUF3QjtBQUV4QixzQkFBc0I7QUFDVCxRQUFBLGlCQUFpQixHQUFHLE9BQUMsQ0FBQyxNQUFNLENBQUM7SUFDdEMsSUFBSSxFQUFFLE9BQUMsQ0FBQyxPQUFPLENBQUMsY0FBYyxDQUFDLENBQUMsUUFBUSxFQUFFO0lBQzFDLFNBQVMsRUFBRSxPQUFDLENBQUMsTUFBTSxFQUFFLENBQUMsUUFBUSxFQUFFO0lBQ2hDLFFBQVEsRUFBRSxPQUFDLENBQUMsTUFBTSxFQUFFLENBQUMsUUFBUSxFQUFFO0lBQy9CLE9BQU8sRUFBRSxPQUFDLENBQUMsTUFBTSxFQUFFLEVBQUUsa0NBQWtDO0lBQ3ZELFNBQVMsRUFBRSxPQUFDLENBQUMsTUFBTSxFQUFFLENBQUMsUUFBUSxFQUFFO0lBQ2hDLGdCQUFnQixFQUFFLE9BQUMsQ0FBQyxNQUFNLEVBQUUsQ0FBQyxRQUFRLEVBQUU7SUFDdkMsU0FBUyxFQUFFLE9BQUMsQ0FBQyxNQUFNLEVBQUUsQ0FBQyxRQUFRLEVBQUU7SUFDaEMsY0FBYyxFQUFFLE9BQUMsQ0FBQyxNQUFNLEVBQUUsQ0FBQyxRQUFRLEVBQUU7SUFDckMsY0FBYyxFQUFFLE9BQUMsQ0FBQyxNQUFNLEVBQUUsQ0FBQyxRQUFRLEVBQUU7SUFDckMsaUJBQWlCLEVBQUUsT0FBQyxDQUFDLE1BQU0sQ0FBQyxPQUFDLENBQUMsTUFBTSxFQUFFLEVBQUUsT0FBQyxDQUFDLE1BQU0sQ0FBQztRQUM3QyxJQUFJLEVBQUUsT0FBQyxDQUFDLE1BQU0sRUFBRTtRQUNoQixLQUFLLEVBQUUsT0FBQyxDQUFDLE1BQU0sRUFBRTtLQUNwQixDQUFDLENBQUMsQ0FBQyxRQUFRLEVBQUU7Q0FDakIsQ0FBQyxDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHsgeiB9IGZyb20gJ3pvZCc7XG5cbi8vIFNOUyBFbnZlbG9wZSBTY2hlbWFcbmV4cG9ydCBjb25zdCBTbnNFbnZlbG9wZVNjaGVtYSA9IHoub2JqZWN0KHtcbiAgICBUeXBlOiB6LmxpdGVyYWwoJ05vdGlmaWNhdGlvbicpLm9wdGlvbmFsKCksXG4gICAgTWVzc2FnZUlkOiB6LnN0cmluZygpLm9wdGlvbmFsKCksXG4gICAgVG9waWNBcm46IHouc3RyaW5nKCkub3B0aW9uYWwoKSxcbiAgICBNZXNzYWdlOiB6LnN0cmluZygpLCAvLyBUaGUgaW5uZXIgbWVzc2FnZSB3ZSBjYXJlIGFib3V0XG4gICAgVGltZXN0YW1wOiB6LnN0cmluZygpLm9wdGlvbmFsKCksXG4gICAgU2lnbmF0dXJlVmVyc2lvbjogei5zdHJpbmcoKS5vcHRpb25hbCgpLFxuICAgIFNpZ25hdHVyZTogei5zdHJpbmcoKS5vcHRpb25hbCgpLFxuICAgIFNpZ25pbmdDZXJ0VVJMOiB6LnN0cmluZygpLm9wdGlvbmFsKCksXG4gICAgVW5zdWJzY3JpYmVVUkw6IHouc3RyaW5nKCkub3B0aW9uYWwoKSxcbiAgICBNZXNzYWdlQXR0cmlidXRlczogei5yZWNvcmQoei5zdHJpbmcoKSwgei5vYmplY3Qoe1xuICAgICAgICBUeXBlOiB6LnN0cmluZygpLFxuICAgICAgICBWYWx1ZTogei5zdHJpbmcoKVxuICAgIH0pKS5vcHRpb25hbCgpXG59KTtcblxuZXhwb3J0IHR5cGUgU25zRW52ZWxvcGUgPSB6LmluZmVyPHR5cGVvZiBTbnNFbnZlbG9wZVNjaGVtYT47XG4iXX0=

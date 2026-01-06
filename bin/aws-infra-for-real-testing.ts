@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 import { SnsStack } from '../lib/sns-stack';
 import { SqsStack } from '../lib/sqs-stack';
 import { DynamoStack } from '../lib/dynamo-stack';

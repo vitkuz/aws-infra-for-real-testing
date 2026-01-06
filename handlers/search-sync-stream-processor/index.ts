@@ -32,8 +32,10 @@ export const handler = withLogger(async (event: DynamoDBStreamEvent, context: Co
     const adapter = createAdapter({ client, logger });
 
     logger.info('Processing DynamoDB Stream for Search Sync', {
-        recordCount: event.Records.length,
-        indexIs: INDEX_NAME
+        data: {
+            recordCount: event.Records.length,
+            indexIs: INDEX_NAME
+        }
     });
 
     for (const record of event.Records) {
@@ -66,7 +68,7 @@ export const handler = withLogger(async (event: DynamoDBStreamEvent, context: Co
                 const id = doc.pk; // Assuming 'pk' is the ID
 
                 if (!id) {
-                    childLogger.warn('Skipping record without pk', { record });
+                    childLogger.warn('Skipping record without pk', { data: { record } });
                     continue;
                 }
 
@@ -77,7 +79,7 @@ export const handler = withLogger(async (event: DynamoDBStreamEvent, context: Co
                     refresh: true // Forcing refresh for immediate consistency in tests, safe for low volume
                 });
 
-                childLogger.info('Indexed document', { id, eventName: record.eventName });
+                childLogger.info('Indexed document', { data: { id, eventName: record.eventName } });
 
             } else if (record.eventName === 'REMOVE') {
                 if (!record.dynamodb?.Keys) continue;
@@ -86,7 +88,7 @@ export const handler = withLogger(async (event: DynamoDBStreamEvent, context: Co
                 const id = keys.pk;
 
                 if (!id) {
-                    childLogger.warn('Skipping delete without pk', { record });
+                    childLogger.warn('Skipping delete without pk', { data: { record } });
                     continue;
                 }
 
@@ -96,10 +98,10 @@ export const handler = withLogger(async (event: DynamoDBStreamEvent, context: Co
                     refresh: true
                 });
 
-                childLogger.info('Deleted document', { id });
+                childLogger.info('Deleted document', { data: { id } });
             }
         } catch (error) {
-            logger.error('Error processing record', error instanceof Error ? error : String(error), { record });
+            logger.error('Error processing record', { error: error instanceof Error ? error : String(error), data: { record } } as any);
             // Should we throw to retry? Usually yes for reliability.
             // For this demo/test stack, logging might be sufficient, but rethrowing ensures DLQ/retry behavior.
             throw error;

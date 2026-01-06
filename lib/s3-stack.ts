@@ -17,7 +17,7 @@ export class S3Stack extends cdk.Stack {
 
         const handler = new NodejsFunction(this, 'S3Handler', {
             runtime: lambda.Runtime.NODEJS_20_X,
-            entry: path.join(__dirname, '../handlers/s3.ts'),
+            entry: path.join(__dirname, '../handlers/s3-handler/index.ts'),
             handler: 'handler',
             logRetention: logs.RetentionDays.ONE_DAY,
             environment: {

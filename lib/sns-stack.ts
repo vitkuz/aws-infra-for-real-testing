@@ -18,7 +18,7 @@ export class SnsStack extends cdk.Stack {
         // 2. Create Lambda Function
         const handler = new NodejsFunction(this, 'SnsHandler', {
             runtime: lambda.Runtime.NODEJS_20_X,
-            entry: path.join(__dirname, '../handlers/sns.ts'),
+            entry: path.join(__dirname, '../handlers/sns-handler/index.ts'),
             handler: 'handler',
             logRetention: logs.RetentionDays.ONE_DAY,
             environment: {

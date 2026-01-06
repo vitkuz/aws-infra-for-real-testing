@@ -17,7 +17,7 @@ export class SqsStack extends cdk.Stack {
         // 2. Create Lambda Function
         const handler = new NodejsFunction(this, 'SqsHandler', {
             runtime: lambda.Runtime.NODEJS_20_X,
-            entry: path.join(__dirname, '../handlers/sqs.ts'),
+            entry: path.join(__dirname, '../handlers/sqs-handler/index.ts'),
             handler: 'handler',
             logRetention: logs.RetentionDays.ONE_DAY,
             environment: {

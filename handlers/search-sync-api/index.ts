@@ -43,7 +43,7 @@ export const handler = withLogger(async (event: APIGatewayProxyEvent, context: C
     const { path, httpMethod, body } = event;
     const jsonBody = body ? JSON.parse(body) : {};
 
-    childLogger.info('Search Sync API Request', { path, httpMethod, requestId });
+    childLogger.info('Search Sync API Request', { data: { path, httpMethod, requestId } });
 
     try {
         // --- OpenSearch Routes ---
@@ -172,7 +172,7 @@ export const handler = withLogger(async (event: APIGatewayProxyEvent, context: C
         return json(404, { message: 'Route not found' });
 
     } catch (error) {
-        childLogger.error('API Error', error instanceof Error ? error : String(error));
+        childLogger.error('API Error', { error: error instanceof Error ? error : String(error) } as any);
         return json(500, { error: error instanceof Error ? error.message : 'Internal Server Error' });
     }
 });

@@ -1,5 +1,5 @@
 import { Context } from 'aws-lambda';
-import { createLogger, withLogger } from '@vitkuz/aws-logger';
+import { withLogger, getLogger } from '@vitkuz/aws-logger';
 import { createClient as createOpenSearchClient, indexDocument } from '@vitkuz/aws-opensearch-adapter';
 
 // OpenSearch client needs endpoint.
@@ -13,11 +13,13 @@ const client = createOpenSearchClient({
 export const handler = withLogger(async (event: any, context: Context) => {
     if (!node) throw new Error('OPENSEARCH_ENDPOINT is required');
 
-    const logger = createLogger();
+    const logger = getLogger();
+    if (!logger) throw new Error('Logger context missing');
+
     const ctx = { logger, client };
 
     const index = 'test-index';
-    logger.info('Indexing document', { index });
+    logger.info('Indexing document', { data: { index } });
 
     const result = await indexDocument(ctx)({
         index,
@@ -27,7 +29,7 @@ export const handler = withLogger(async (event: any, context: Context) => {
         }
     });
 
-    logger.info('Index result', { result });
+    logger.info('Index result', { data: { result } });
 
     return { statusCode: 200, body: 'Success' };
 });

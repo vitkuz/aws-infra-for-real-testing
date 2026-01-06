@@ -5,7 +5,7 @@ export const handler = withLogger(async (event: SNSEvent, context: Context) => {
     const logger = getLogger();
     if (!logger) throw new Error('Logger context missing');
 
-    logger.info('SNS Handler Invoked', { eventType: 'SNS Trigger', recordCount: event.Records.length });
+    logger.info('SNS Handler Invoked', { data: { eventType: 'SNS Trigger', recordCount: event.Records.length } });
 
     for (const record of event.Records) {
         const snsMessage = record.Sns;
@@ -13,10 +13,12 @@ export const handler = withLogger(async (event: SNSEvent, context: Context) => {
         const recordLogger = logger.child(requestId ? { [REQUEST_ID_KEY]: requestId } : {});
 
         recordLogger.info('Processing SNS Message', {
-            messageId: snsMessage.MessageId,
-            subject: snsMessage.Subject,
-            message: snsMessage.Message,
-            timestamp: snsMessage.Timestamp
+            data: {
+                messageId: snsMessage.MessageId,
+                subject: snsMessage.Subject,
+                message: snsMessage.Message,
+                timestamp: snsMessage.Timestamp
+            }
         });
     }
 

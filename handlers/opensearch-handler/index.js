@@ -1,0 +1,32 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.handler = void 0;
+const aws_logger_1 = require("@vitkuz/aws-logger");
+const aws_opensearch_adapter_1 = require("@vitkuz/aws-opensearch-adapter");
+// OpenSearch client needs endpoint.
+const node = process.env.OPENSEARCH_ENDPOINT;
+// If env var is missing during init (e.g. test context), we might fail or default.
+// Lambda ensures env vars are present.
+const client = (0, aws_opensearch_adapter_1.createClient)({
+    node: `https://${node}`
+});
+exports.handler = (0, aws_logger_1.withLogger)(async (event, context) => {
+    if (!node)
+        throw new Error('OPENSEARCH_ENDPOINT is required');
+    const logger = (0, aws_logger_1.getLogger)();
+    if (!logger)
+        throw new Error('Logger context missing');
+    const ctx = { logger, client };
+    const index = 'test-index';
+    logger.info('Indexing document', { data: { index } });
+    const result = await (0, aws_opensearch_adapter_1.indexDocument)(ctx)({
+        index,
+        body: {
+            title: 'Test Document',
+            timestamp: new Date().toISOString()
+        }
+    });
+    logger.info('Index result', { data: { result } });
+    return { statusCode: 200, body: 'Success' };
+});
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXguanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJpbmRleC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7QUFDQSxtREFBMkQ7QUFDM0QsMkVBQXVHO0FBRXZHLG9DQUFvQztBQUNwQyxNQUFNLElBQUksR0FBRyxPQUFPLENBQUMsR0FBRyxDQUFDLG1CQUFtQixDQUFDO0FBQzdDLG1GQUFtRjtBQUNuRix1Q0FBdUM7QUFDdkMsTUFBTSxNQUFNLEdBQUcsSUFBQSxxQ0FBc0IsRUFBQztJQUNsQyxJQUFJLEVBQUUsV0FBVyxJQUFJLEVBQUU7Q0FDMUIsQ0FBQyxDQUFDO0FBRVUsUUFBQSxPQUFPLEdBQUcsSUFBQSx1QkFBVSxFQUFDLEtBQUssRUFBRSxLQUFVLEVBQUUsT0FBZ0IsRUFBRSxFQUFFO0lBQ3JFLElBQUksQ0FBQyxJQUFJO1FBQUUsTUFBTSxJQUFJLEtBQUssQ0FBQyxpQ0FBaUMsQ0FBQyxDQUFDO0lBRTlELE1BQU0sTUFBTSxHQUFHLElBQUEsc0JBQVMsR0FBRSxDQUFDO0lBQzNCLElBQUksQ0FBQyxNQUFNO1FBQUUsTUFBTSxJQUFJLEtBQUssQ0FBQyx3QkFBd0IsQ0FBQyxDQUFDO0lBRXZELE1BQU0sR0FBRyxHQUFHLEVBQUUsTUFBTSxFQUFFLE1BQU0sRUFBRSxDQUFDO0lBRS9CLE1BQU0sS0FBSyxHQUFHLFlBQVksQ0FBQztJQUMzQixNQUFNLENBQUMsSUFBSSxDQUFDLG1CQUFtQixFQUFFLEVBQUUsSUFBSSxFQUFFLEVBQUUsS0FBSyxFQUFFLEVBQUUsQ0FBQyxDQUFDO0lBRXRELE1BQU0sTUFBTSxHQUFHLE1BQU0sSUFBQSxzQ0FBYSxFQUFDLEdBQUcsQ0FBQyxDQUFDO1FBQ3BDLEtBQUs7UUFDTCxJQUFJLEVBQUU7WUFDRixLQUFLLEVBQUUsZUFBZTtZQUN0QixTQUFTLEVBQUUsSUFBSSxJQUFJLEVBQUUsQ0FBQyxXQUFXLEVBQUU7U0FDdEM7S0FDSixDQUFDLENBQUM7SUFFSCxNQUFNLENBQUMsSUFBSSxDQUFDLGNBQWMsRUFBRSxFQUFFLElBQUksRUFBRSxFQUFFLE1BQU0sRUFBRSxFQUFFLENBQUMsQ0FBQztJQUVsRCxPQUFPLEVBQUUsVUFBVSxFQUFFLEdBQUcsRUFBRSxJQUFJLEVBQUUsU0FBUyxFQUFFLENBQUM7QUFDaEQsQ0FBQyxDQUFDLENBQUMiLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBDb250ZXh0IH0gZnJvbSAnYXdzLWxhbWJkYSc7XG5pbXBvcnQgeyB3aXRoTG9nZ2VyLCBnZXRMb2dnZXIgfSBmcm9tICdAdml0a3V6L2F3cy1sb2dnZXInO1xuaW1wb3J0IHsgY3JlYXRlQ2xpZW50IGFzIGNyZWF0ZU9wZW5TZWFyY2hDbGllbnQsIGluZGV4RG9jdW1lbnQgfSBmcm9tICdAdml0a3V6L2F3cy1vcGVuc2VhcmNoLWFkYXB0ZXInO1xuXG4vLyBPcGVuU2VhcmNoIGNsaWVudCBuZWVkcyBlbmRwb2ludC5cbmNvbnN0IG5vZGUgPSBwcm9jZXNzLmVudi5PUEVOU0VBUkNIX0VORFBPSU5UO1xuLy8gSWYgZW52IHZhciBpcyBtaXNzaW5nIGR1cmluZyBpbml0IChlLmcuIHRlc3QgY29udGV4dCksIHdlIG1pZ2h0IGZhaWwgb3IgZGVmYXVsdC5cbi8vIExhbWJkYSBlbnN1cmVzIGVudiB2YXJzIGFyZSBwcmVzZW50LlxuY29uc3QgY2xpZW50ID0gY3JlYXRlT3BlblNlYXJjaENsaWVudCh7XG4gICAgbm9kZTogYGh0dHBzOi8vJHtub2RlfWBcbn0pO1xuXG5leHBvcnQgY29uc3QgaGFuZGxlciA9IHdpdGhMb2dnZXIoYXN5bmMgKGV2ZW50OiBhbnksIGNvbnRleHQ6IENvbnRleHQpID0+IHtcbiAgICBpZiAoIW5vZGUpIHRocm93IG5ldyBFcnJvcignT1BFTlNFQVJDSF9FTkRQT0lOVCBpcyByZXF1aXJlZCcpO1xuXG4gICAgY29uc3QgbG9nZ2VyID0gZ2V0TG9nZ2VyKCk7XG4gICAgaWYgKCFsb2dnZXIpIHRocm93IG5ldyBFcnJvcignTG9nZ2VyIGNvbnRleHQgbWlzc2luZycpO1xuXG4gICAgY29uc3QgY3R4ID0geyBsb2dnZXIsIGNsaWVudCB9O1xuXG4gICAgY29uc3QgaW5kZXggPSAndGVzdC1pbmRleCc7XG4gICAgbG9nZ2VyLmluZm8oJ0luZGV4aW5nIGRvY3VtZW50JywgeyBkYXRhOiB7IGluZGV4IH0gfSk7XG5cbiAgICBjb25zdCByZXN1bHQgPSBhd2FpdCBpbmRleERvY3VtZW50KGN0eCkoe1xuICAgICAgICBpbmRleCxcbiAgICAgICAgYm9keToge1xuICAgICAgICAgICAgdGl0bGU6ICdUZXN0IERvY3VtZW50JyxcbiAgICAgICAgICAgIHRpbWVzdGFtcDogbmV3IERhdGUoKS50b0lTT1N0cmluZygpXG4gICAgICAgIH1cbiAgICB9KTtcblxuICAgIGxvZ2dlci5pbmZvKCdJbmRleCByZXN1bHQnLCB7IGRhdGE6IHsgcmVzdWx0IH0gfSk7XG5cbiAgICByZXR1cm4geyBzdGF0dXNDb2RlOiAyMDAsIGJvZHk6ICdTdWNjZXNzJyB9O1xufSk7XG4iXX0=

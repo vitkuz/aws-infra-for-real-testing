@@ -7,8 +7,10 @@ export const handler = withLogger(async (event: DynamoDBStreamEvent, context: Co
     if (!logger) throw new Error('Logger context missing');
 
     logger.info('DynamoDB Stream Handler Invoked', {
-        eventType: 'DynamoDB Trigger',
-        recordCount: event.Records.length
+        data: {
+            eventType: 'DynamoDB Trigger',
+            recordCount: event.Records.length
+        }
     });
 
     for (const record of event.Records) {
@@ -22,16 +24,18 @@ export const handler = withLogger(async (event: DynamoDBStreamEvent, context: Co
                 const recordLogger = logger.child(requestId ? { [REQUEST_ID_KEY]: requestId } : {});
 
                 recordLogger.info('Processing DynamoDB Record', {
-                    eventName: record.eventName,
-                    pk: item.pk,
-                    item
+                    data: {
+                        eventName: record.eventName,
+                        pk: item.pk,
+                        item
+                    }
                 });
             }
         } else if (record.eventName === 'REMOVE') {
             if (record.dynamodb?.Keys) {
                 // @ts-ignore
                 const keys = unmarshall(record.dynamodb.Keys as any);
-                logger.info('Processing DynamoDB Deletion', { keys });
+                logger.info('Processing DynamoDB Deletion', { data: { keys } });
             }
         }
     }

@@ -33,7 +33,7 @@ export class SearchSyncStack extends cdk.Stack {
         // 3. Stream Processor Lambda
         const streamProcessor = new NodejsFunction(this, 'StreamProcessor', {
             runtime: lambda.Runtime.NODEJS_20_X,
-            entry: path.join(__dirname, '../handlers/search-sync/stream-processor.ts'),
+            entry: path.join(__dirname, '../handlers/search-sync-stream-processor/index.ts'),
             handler: 'handler',
             logRetention: logs.RetentionDays.ONE_DAY,
             environment: {
@@ -58,7 +58,7 @@ export class SearchSyncStack extends cdk.Stack {
         // 4. API Handler Lambda
         const apiHandler = new NodejsFunction(this, 'ApiHandler', {
             runtime: lambda.Runtime.NODEJS_20_X,
-            entry: path.join(__dirname, '../handlers/search-sync/api.ts'),
+            entry: path.join(__dirname, '../handlers/search-sync-api/index.ts'),
             handler: 'handler',
             logRetention: logs.RetentionDays.ONE_DAY,
             environment: {

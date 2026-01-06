@@ -30,7 +30,7 @@ export class DynamoStack extends cdk.Stack {
 
         const handler = new NodejsFunction(this, 'DynamoHandler', {
             runtime: lambda.Runtime.NODEJS_20_X,
-            entry: path.join(__dirname, '../handlers/dynamo.ts'),
+            entry: path.join(__dirname, '../handlers/dynamo-handler/index.ts'),
             handler: 'handler',
             logRetention: logs.RetentionDays.ONE_DAY,
             environment: {

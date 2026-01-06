@@ -11,7 +11,7 @@ export const handler = withLogger(async (event: S3Event, context: Context) => {
 
     if (!logger) throw new Error('Logger context missing');
 
-    logger.info('S3 Handler Invoked', { eventType: 'S3 Trigger', recordCount: event.Records.length });
+    logger.info('S3 Handler Invoked', { data: { eventType: 'S3 Trigger', recordCount: event.Records.length } });
 
     for (const record of event.Records) {
         const bucket = record.s3.bucket.name;
@@ -28,14 +28,16 @@ export const handler = withLogger(async (event: S3Event, context: Context) => {
             const recordLogger = logger.child(requestId ? { [REQUEST_ID_KEY]: requestId } : {});
 
             recordLogger.info('Processing S3 Record', {
-                bucket,
-                key,
-                size: record.s3.object.size,
-                eventName: record.eventName
+                data: {
+                    bucket,
+                    key,
+                    size: record.s3.object.size,
+                    eventName: record.eventName
+                }
             });
 
         } catch (error) {
-            logger.error('Error processing S3 record', error as Error, { bucket, key });
+            logger.error('Error processing S3 record', { error: error as Error, data: { bucket, key } } as any);
         }
     }
 

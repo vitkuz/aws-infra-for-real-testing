@@ -13,7 +13,7 @@ export class HttpApiStack extends cdk.Stack {
 
         const handler = new NodejsFunction(this, 'HttpApiHandler', {
             runtime: lambda.Runtime.NODEJS_20_X,
-            entry: path.join(__dirname, '../handlers/http-api.ts'),
+            entry: path.join(__dirname, '../handlers/http-api-handler/index.ts'),
             handler: 'handler',
             logRetention: logs.RetentionDays.ONE_DAY,
             environment: {

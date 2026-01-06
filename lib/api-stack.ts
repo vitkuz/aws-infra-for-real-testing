@@ -12,7 +12,7 @@ export class ApiStack extends cdk.Stack {
 
         const handler = new NodejsFunction(this, 'ApiHandler', {
             runtime: lambda.Runtime.NODEJS_20_X,
-            entry: path.join(__dirname, '../handlers/api.ts'),
+            entry: path.join(__dirname, '../handlers/testing-api/index.ts'),
             handler: 'handler',
             logRetention: logs.RetentionDays.ONE_DAY,
             environment: {

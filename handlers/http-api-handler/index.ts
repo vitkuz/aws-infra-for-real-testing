@@ -12,10 +12,12 @@ export const handler = withLogger(async (event: APIGatewayProxyEventV2, context:
     const childLogger = logger.child(requestId ? { [REQUEST_ID_KEY]: requestId } : {});
 
     childLogger.info('HTTP API Handler Invoked', {
-        path: event.requestContext.http.path,
-        method: event.requestContext.http.method,
-        queryParams: event.queryStringParameters,
-        requestId
+        data: {
+            path: event.requestContext.http.path,
+            method: event.requestContext.http.method,
+            queryParams: event.queryStringParameters,
+            requestId
+        }
     });
 
     return {

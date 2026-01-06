@@ -28,7 +28,7 @@ export class SnsSqsLambdaStack extends cdk.Stack {
         // 4. Create Lambda Function
         const processor = new nodejs.NodejsFunction(this, 'SqsProcessor', {
             runtime: lambda.Runtime.NODEJS_20_X,
-            entry: path.join(__dirname, '../handlers/sqs-processor.ts'),
+            entry: path.join(__dirname, '../handlers/sqs-processor/index.ts'),
             handler: 'handler',
             environment: {
                 QUEUE_URL: queue.queueUrl,

@@ -19,7 +19,7 @@ export class AwsInfraForRealTestingStack extends cdk.Stack {
     // 2. Create Lambda Function
     const handler = new nodejs.NodejsFunction(this, 'SnsHandler', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      entry: path.join(__dirname, '../handlers/sns.ts'),
+      entry: path.join(__dirname, '../handlers/sns-handler/index.ts'),
       handler: 'handler',
       environment: {
         TOPIC_ARN: topic.topicArn, // Handlers might find this useful, though not strictly needed for consumer
