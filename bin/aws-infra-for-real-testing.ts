@@ -13,6 +13,7 @@ import { SnsSqsLambdaStack } from '../lib/sns-sqs-lambda-stack';
 import { ApiStack } from '../lib/api-stack';
 import { HttpApiStack } from '../lib/http-api-stack';
 import { SearchSyncStack } from '../lib/search-sync-stack';
+import { EventBridgeStack } from '../lib/eventbridge-stack';
 
 
 const app = new cdk.App();
@@ -33,4 +34,10 @@ new SnsSqsLambdaStack(app, 'VitkuzTestingSnsSqsStack', { env, stackName: 'vitkuz
 new ApiStack(app, 'VitkuzTestingApiStack', { env, stackName: 'vitkuz-testing-api' });
 new HttpApiStack(app, 'VitkuzTestingHttpApiStack', { env, stackName: 'vitkuz-testing-http-api' });
 new SearchSyncStack(app, 'VitkuzTestingSearchSyncStack', { env, stackName: 'vitkuz-testing-search-sync' });
+new EventBridgeStack(app, 'VitkuzTestingEventBridgeStack', {
+  env,
+  stackName: 'vitkuz-testing-eventbridge',
+  projectName: 'vitkuz',
+  envName: 'test'
+});
 
